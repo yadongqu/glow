@@ -29,6 +29,8 @@ public:
         renderMode = mode;
     }
 
+    void renderMesh(SceneGraph &scene, int32_t meshIndex, const glm::mat4 &model);
+
 private:
     void renderNode(SceneGraph &scene, int32_t index);
     ProgramHandle mProgram;
@@ -36,6 +38,9 @@ private:
     TextureHandle irrdianceMap;
     TextureHandle prefilterMap;
     TextureHandle brdfLut;
+
+    std::vector<std::pair<U32, U32>> opaqueMeshes;
+    std::vector<std::pair<U32, U32>> transparentMeshes;
 
     Frustum frustum;
     int renderMode = 0;

@@ -136,6 +136,12 @@ struct Node
 
 struct Material
 {
+    enum AlphaMode {
+        OPAQUE,
+        BLEND,
+        MASK
+    };
+
     U32 albedoMap{U32_MAX};
     U32 normalMap{U32_MAX};
     U32 metallicRoughnessMap{U32_MAX};
@@ -153,6 +159,10 @@ struct Material
     F32 roughness{1.0f};
     glm::vec3 emissive{0.0f, 0.0f, 0.0f};
     F32 ao{1.0f};
+
+    AlphaMode alphaMode = OPAQUE;
+    F32 alphaCutoff = 0.5f;
+
 };
 
 struct SceneGraph

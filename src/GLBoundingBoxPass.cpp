@@ -98,11 +98,6 @@ void GLBoundingBoxPass::renderNode(SceneGraph &scene, int32_t index)
             glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, (void *)(8 * sizeof(GLuint)));
         }       
     }
-   
-    for (U32 i = 0; i < node.children.size(); ++i)
-    {
-        renderNode(scene, node.children[i]);
-    }
 }
 
 void GLBoundingBoxPass::render(SceneGraph &scene)
@@ -110,6 +105,8 @@ void GLBoundingBoxPass::render(SceneGraph &scene)
     GLDevice::useProgram(mProgram);
     GLDevice::setUniform(mProgram, "view", scene.camera.view);
     GLDevice::setUniform(mProgram, "proj", scene.camera.proj);
-    renderNode(scene, 0);
+    for(int i = 0; i < scene.nodes.size(); ++i) {
+        renderNode(scene, i);
+    }
     glBindVertexArray(0);
 }

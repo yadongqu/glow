@@ -20,7 +20,7 @@ cmake ..
 ```
 I have not tested on other platforms
 
-## Features:
+## Features
 
 1. Image based Lighting and Metallic-Roughness Workflow.
 2. CPU View Frustum Culling.

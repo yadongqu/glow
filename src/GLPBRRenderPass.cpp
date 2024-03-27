@@ -41,6 +41,9 @@ uniform bool hasMetallicRoughnessMap;
 uniform bool hasAoMap;
 uniform bool hasEmissiveMap;
 
+uniform int alphaMode;
+uniform float alphaCutoff;
+
 uniform vec3 albedo_;
 uniform float metallic_;
 uniform float roughness_;
@@ -128,8 +131,19 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 
 void main() {
     vec3 albedo = albedo_;
+    float alpha = 1.0;
     if (hasAlbedoMap) {
         albedo = pow(texture(albedoMap, TexCoord).xyz, vec3(2.2));
+        if (alphaMode == 1) {
+            alpha = texture(albedoMap, TexCoord).w;
+        }
+        else if (alphaMode == 2) {
+            float tmp = texture(albedoMap, TexCoord).w;
+            if (tmp < alphaCutoff) {
+                discard;
+            }
+        }
+
     }
     float metallic = metallic_;
     float roughness = roughness_;
@@ -198,7 +212,7 @@ void main() {
 
    
 
-    gl_FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(color, alpha);
 }
 )";
 
@@ -211,7 +225,7 @@ void GLPBRRenderPass::init(SceneGraph &scene)
     GLDevice::setUniform(mProgram, "camPos", scene.camera.eye);
     GLDevice::setUniform(mProgram, "renderMode", 0);
 
-    auto rootNode = scene.nodes[0];
+    // first split nodes to opaque and transparent groups
 
     for (int i = 0; i < scene.meshes.size(); ++i)
     {
@@ -219,6 +233,29 @@ void GLPBRRenderPass::init(SceneGraph &scene)
 
         primitive.vao = GLDevice::createVAO(primitive.vertices, primitive.indices);
     }
+    std::vector<U32> filteredNode;
+    for (int i = 0; i < scene.nodes.size(); i++) {
+        auto &node = scene.nodes[i];
+        if (node.meshes.size() > 0) {
+            filteredNode.push_back(i);
+        }
+    }
+    for(int i = 0; i < filteredNode.size(); ++i) {
+        auto &node = scene.nodes[filteredNode[i]];
+        for(int j = 0; j < node.meshes.size(); ++j) {
+            auto meshIndex = node.meshes[j];
+            auto nodeIndex = filteredNode[i];
+            auto &mesh = scene.meshes[meshIndex];
+            auto &material = scene.materials[mesh.material];
+            if (material.alphaMode == Material::OPAQUE) {
+                opaqueMeshes.push_back({meshIndex, nodeIndex});
+            }
+            else {
+                transparentMeshes.push_back({meshIndex, nodeIndex});
+            }
+        }
+    }
+
 
     TextureDescriptor textureDescriptor({
         .target = GL_TEXTURE_2D,
@@ -310,10 +347,6 @@ void GLPBRRenderPass::init(SceneGraph &scene)
 
 void GLPBRRenderPass::renderNode(SceneGraph &scene, int32_t index)
 {
-    if (!frustum.IsBoxVisible(scene.bboxes[index])) {
-        printf(" not in frustum\n");
-        return;
-    }
     auto &node = scene.nodes[index];
     auto &model = scene.worldMatrices[index];
     
@@ -398,15 +431,87 @@ void GLPBRRenderPass::renderNode(SceneGraph &scene, int32_t index)
         }
         
     }
-    for (int i = 0; i < node.children.size(); ++i)
+    // for (int i = 0; i < node.children.size(); ++i)
+    // {
+    //     renderNode(scene, node.children[i]);
+    // }
+}
+
+void GLPBRRenderPass::renderMesh(SceneGraph &scene, int32_t meshIndex, const glm::mat4 &model) {
+    auto &mesh = scene.meshes[meshIndex];        
+    auto &material = scene.materials[mesh.material];
+    auto &vao = mesh.vao;
+    GLDevice::setUniform(mProgram, "model", model);
+    glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+    GLDevice::setUniform(mProgram, "normalMat", normalMatrix);
+    GLDevice::setUniform(mProgram, "proj", scene.camera.proj);
+    GLDevice::setUniform(mProgram, "alphaMode", material.alphaMode);
+    GLDevice::setUniform(mProgram, "alphaCutoff", material.alphaCutoff);
+    // TODO: check camera dirty flag only set this when camera is dirty
+    if (material.hasAlbedoMap)
     {
-        renderNode(scene, node.children[i]);
+        GLDevice::setUniform(mProgram, "hasAlbedoMap", true);
+        auto handle = scene.textures[material.albedoMap].handle;
+        GLDevice::bindTexture(handle, 0);
     }
+    else
+    {
+        GLDevice::setUniform(mProgram, "hasAlbedoMap", false);
+        GLDevice::setUniform(mProgram, "albedo_", material.albedo);
+    }
+    if (material.hasNormalMap)
+    {
+        GLDevice::setUniform(mProgram, "hasNormalMap", true);
+        auto handle = scene.textures[material.normalMap].handle;
+        GLDevice::bindTexture(handle, 1);
+    }
+    else
+    {
+        GLDevice::setUniform(mProgram, "hasNormalMap", false);
+    }
+    if (material.hasMetallicRoughnessMap)
+    {
+        GLDevice::setUniform(mProgram, "hasMetallicRoughnessMap", true);
+        auto handle = scene.textures[material.metallicRoughnessMap].handle;
+        GLDevice::bindTexture(handle, 2);
+    }
+    else
+    {
+        GLDevice::setUniform(mProgram, "hasMetallicRoughnessMap", false);
+        GLDevice::setUniform(mProgram, "metallic_", material.metallic);
+        GLDevice::setUniform(mProgram, "roughness_", material.roughness);
+    }
+
+    if (material.hasAOMap)
+    {
+        GLDevice::setUniform(mProgram, "hasAoMap", true);
+        auto handle = scene.textures[material.aoMap].handle;
+        GLDevice::bindTexture(handle, 3);
+    }
+    else
+    {
+        GLDevice::setUniform(mProgram, "hasAoMap", false);
+        GLDevice::setUniform(mProgram, "ao_", material.ao);
+    }
+
+    if (material.hasEmissiveMap)
+    {
+        GLDevice::setUniform(mProgram, "hasEmissiveMap", true);
+        auto handle = scene.textures[material.emissiveMap].handle;
+        GLDevice::bindTexture(handle, 4);
+    }
+    else
+    {
+        GLDevice::setUniform(mProgram, "hasEmissiveMap", false);
+        GLDevice::setUniform(mProgram, "emissive_", material.emissive);
+    }
+    GLDevice::drawVAO(vao);
 }
 
 void GLPBRRenderPass::render(SceneGraph &scene)
 {
     glEnable(GL_CULL_FACE);
+
     rotation += 0.1f;
     auto rot = glm::rotate(glm::mat4(1.0f), glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
     // auto finalModel = rot * model;
@@ -418,6 +523,42 @@ void GLPBRRenderPass::render(SceneGraph &scene)
     GLDevice::bindTexture(prefilterMap, 6);
     GLDevice::bindTexture(brdfLut, 7);
     frustum = Frustum(scene.camera.proj * scene.camera.view);
-    renderNode(scene, 0);
+    // filter out nodes that are not in frustum
+    std::vector<std::pair<U32, U32>> opaqueToRender;
+    std::vector<std::pair<U32, U32>> transparentToRender;
+    for (int i = 0; i < opaqueMeshes.size(); ++i) {
+        auto pair = opaqueMeshes[i];
+        auto meshIndex = pair.first;
+        auto nodeIndex = pair.second;
+        if (frustum.IsBoxVisible(scene.bboxes[nodeIndex])) {
+            opaqueToRender.push_back({meshIndex, nodeIndex});
+        }
+    }
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    for (int i = 0; i < transparentMeshes.size(); ++i) {
+        auto pair = transparentMeshes[i];
+        auto meshIndex = pair.first;
+        auto nodeIndex = pair.second;
+        if (frustum.IsBoxVisible(scene.bboxes[nodeIndex])) {
+            transparentToRender.push_back({meshIndex, nodeIndex});
+        }
+    }
+
+    // flat the nodes to meshes and matrices
+
+    for (auto& pair: opaqueToRender) {
+        auto meshIndex = pair.first;
+        auto nodeIndex = pair.second;
+        
+        renderMesh(scene, meshIndex, scene.worldMatrices[nodeIndex]);
+    }
+    for (auto& pair: transparentToRender) { 
+        auto meshIndex = pair.first;
+        auto nodeIndex = pair.second;
+        renderMesh(scene, meshIndex, scene.worldMatrices[nodeIndex]);
+    }
+    // renderNode(scene, 0);
     glDisable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
 }

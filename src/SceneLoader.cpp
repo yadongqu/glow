@@ -180,14 +180,19 @@ bool SceneGraph::load(const char *path){
         aiColor4D color;
         if (aiGetMaterialColor(M, AI_MATKEY_COLOR_AMBIENT, &color) == AI_SUCCESS)
         {
+            if (color.a < 1.0f) {
+                printf("Material %d has alpha\n", i);
+            }
             material.emissive= glm::vec3(color.r, color.g, color.b);
 
         }
 
         if (aiGetMaterialColor(M, AI_MATKEY_COLOR_DIFFUSE, &color) == AI_SUCCESS)
         {
+            if (color.a < 1.0f) {
+                printf("Material %d has alpha\n", i);
+            }
             material.albedo = glm::vec3(color.r, color.g, color.b);
-
         }
 
         if (aiGetMaterialColor(M, AI_MATKEY_COLOR_EMISSIVE, &color) == AI_SUCCESS)
@@ -196,7 +201,24 @@ bool SceneGraph::load(const char *path){
             material.emissive.y += color.g;
             material.emissive.z += color.b;
         }
+        float alphacutoff = 1.0f;
+        if(aiGetMaterialFloat(M, AI_MATKEY_GLTF_ALPHACUTOFF, &alphacutoff) == AI_SUCCESS) {
+            material.alphaCutoff = glm::clamp(alphacutoff, 0.0f, 1.0f);
+        }
+        aiString alphaMode;
+        if(aiGetMaterialString(M, AI_MATKEY_GLTF_ALPHAMODE, &alphaMode) == AI_SUCCESS) {
+            printf("Material %d has alpha mode %s\n", i, alphaMode.C_Str());
+            if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
+                material.alphaMode = Material::BLEND;
+            } else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
+                material.alphaMode = Material::MASK;
+            } else {
+                material.alphaMode = Material::OPAQUE;
+            }
+        }
 
+        // get blend mode
+        
         // float opacity = 1.0f;
 
         // if (aiGetMaterialFloat(M, AI_MATKEY_OPACITY, &opacity) == AI_SUCCESS) {
@@ -213,6 +235,8 @@ bool SceneGraph::load(const char *path){
 
         if (aiGetMaterialFloat(M, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, &tmp) == AI_SUCCESS)
             material.roughness = tmp;
+
+        // 
 
         aiString path;
         aiTextureMapping mapping;
