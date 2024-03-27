@@ -9,8 +9,15 @@ int main()
 
     SceneGraph scene;
     // scene.load("resources/gltf/helmet/DamagedHelmet.gltf");
-    scene.load("resources/gltf/alpha_blend/AlphaBlendModeTest.gltf");
+    // scene.load("resources/gltf/alpha_blend/AlphaBlendModeTest.gltf");
     // scene.load("resources/gltf/bistro_exterior/bistro_exterior.gltf");
+    // scene.load("../extern/glTF-Sample-Models/2.0/EnvironmentTest/glTF/EnvironmentTest.gltf");
+    // scene.load("../extern/glTF-Sample-Models/2.0/AntiqueCamera/glTF/AntiqueCamera.gltf");
+    // todo: need fix
+    // scene.load("../extern/glTF-Sample-Models/2.0/DragonAttenuation/glTF/DragonAttenuation.gltf");
+
+    scene.load("../extern/glTF-Sample-Models/2.0/ABeautifulGame/glTF/ABeautifulGame.gltf");
+
     // scene.load("resources/gltf/buggy/Buggy.gltf");
     // scene.load("resources/gltf/waterbottle/WaterBottle.gltf");
     // scene.load("resources/gltf/engine/2CylinderEngine.gltf");
@@ -20,9 +27,9 @@ int main()
 
     Window window({});
     Renderer renderer(&window);
-    scene.camera.eye = glm::vec3(0, 0.0, 6.0f);
+    scene.camera.eye = glm::vec3(0.0, 0.0, 5.0f);
     // scene.camera.eye = glm::vec3(0.0, 0.0, 3.0);
-    scene.camera.target = glm::vec3(0.0, 1.0, 0.0);
+    scene.camera.target = glm::vec3(0.0, 0.0, 0.0);
     scene.camera.view = glm::lookAt(scene.camera.eye, scene.camera.target, glm::vec3(0.0, 1.0, 0.0));
 
     scene.camera.proj = glm::perspective(glm::radians(60.f), (F32)renderer.width() / (F32)renderer.height(), 0.1f, 1000.0f);

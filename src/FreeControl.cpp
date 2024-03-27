@@ -33,4 +33,16 @@ void FreeControl::update(F32 dt) {
         mCamera.target += right * dt * speed;
         mCamera.view = glm::lookAt(mCamera.eye, mCamera.target, glm::vec3(0.0f, 1.0f, 0.0f));
     }
+
+    if (mWindow.getKey(GLFW_KEY_UP) == GLFW_PRESS) {
+        mCamera.eye += glm::vec3(0.0f, 1.0f, 0.0f) * dt * speed;
+        mCamera.target += glm::vec3(0.0f, 1.0f, 0.0f) * dt * speed;
+        mCamera.view = glm::lookAt(mCamera.eye, mCamera.target, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+
+    if (mWindow.getKey(GLFW_KEY_DOWN) == GLFW_PRESS) {
+        mCamera.eye -= glm::vec3(0.0f, 1.0f, 0.0f) * dt * speed;
+        mCamera.target -= glm::vec3(0.0f, 1.0f, 0.0f) * dt * speed;
+        mCamera.view = glm::lookAt(mCamera.eye, mCamera.target, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
 }

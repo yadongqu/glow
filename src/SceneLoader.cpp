@@ -217,6 +217,14 @@ bool SceneGraph::load(const char *path){
             }
         }
 
+        aiBool doubleSided;
+        if (aiGetMaterialInteger(M, AI_MATKEY_TWOSIDED, &doubleSided) == AI_SUCCESS) {
+            material.doubleSided = doubleSided != 0;
+            if (material.doubleSided) { 
+                printf("Material %d is double sided\n", i);
+            }
+        }
+
         // get blend mode
         
         // float opacity = 1.0f;

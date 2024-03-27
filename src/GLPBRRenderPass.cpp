@@ -447,6 +447,11 @@ void GLPBRRenderPass::renderMesh(SceneGraph &scene, int32_t meshIndex, const glm
     GLDevice::setUniform(mProgram, "proj", scene.camera.proj);
     GLDevice::setUniform(mProgram, "alphaMode", material.alphaMode);
     GLDevice::setUniform(mProgram, "alphaCutoff", material.alphaCutoff);
+    if (material.doubleSided) {
+        glDisable(GL_CULL_FACE);
+    } else {
+        glEnable(GL_CULL_FACE);
+    }
     // TODO: check camera dirty flag only set this when camera is dirty
     if (material.hasAlbedoMap)
     {
@@ -534,8 +539,7 @@ void GLPBRRenderPass::render(SceneGraph &scene)
             opaqueToRender.push_back({meshIndex, nodeIndex});
         }
     }
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     for (int i = 0; i < transparentMeshes.size(); ++i) {
         auto pair = transparentMeshes[i];
         auto meshIndex = pair.first;
@@ -553,12 +557,13 @@ void GLPBRRenderPass::render(SceneGraph &scene)
         
         renderMesh(scene, meshIndex, scene.worldMatrices[nodeIndex]);
     }
+    glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     for (auto& pair: transparentToRender) { 
         auto meshIndex = pair.first;
         auto nodeIndex = pair.second;
         renderMesh(scene, meshIndex, scene.worldMatrices[nodeIndex]);
     }
-    // renderNode(scene, 0);
     glDisable(GL_CULL_FACE);
     glDisable(GL_BLEND);
 }

@@ -10,5 +10,5 @@ public:
 private:
         Window &mWindow;
         CameraData &mCamera;
-        F32 speed{100.0f};
+        F32 speed{0.1f};
 };

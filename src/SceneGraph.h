@@ -162,6 +162,7 @@ struct Material
 
     AlphaMode alphaMode = OPAQUE;
     F32 alphaCutoff = 0.5f;
+    bool doubleSided = false;
 
 };
 
