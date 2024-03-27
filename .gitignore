@@ -1,0 +1,8 @@
+build
+.vscode
+vcpkg_installed
+.cache
+out
+cmake-build-*
+.idea
+resources
