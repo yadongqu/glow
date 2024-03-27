@@ -1,6 +1,6 @@
 # Glow
 
-A Physically Based 3D Model Renderer.
+A (WIP) Physically Based 3D Model Renderer.
 
 ## Demo
 
@@ -15,9 +15,16 @@ mkdir build
 cd build
 cmake ..
 # run demo scene with:
+
 ./glow.exe
 ```
 I have not tested on other platforms
+
+## Features:
+
+1. Image based Lighting and Metallic-Roughness Workflow.
+2. CPU View Frustum Culling.
+3. Bounding Box Debug View.
 
 ## Reference
 

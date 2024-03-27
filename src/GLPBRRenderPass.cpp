@@ -316,6 +316,7 @@ void GLPBRRenderPass::renderNode(SceneGraph &scene, int32_t index)
     }
     auto &node = scene.nodes[index];
     auto &model = scene.worldMatrices[index];
+    
     if (node.meshes.size() > 0)
     {
         for (U32 i = 0; i < node.meshes.size(); ++i) {
