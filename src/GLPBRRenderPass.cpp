@@ -234,28 +234,33 @@ void GLPBRRenderPass::init(SceneGraph &scene)
         primitive.vao = GLDevice::createVAO(primitive.vertices, primitive.indices);
     }
     std::vector<U32> filteredNode;
-    for (int i = 0; i < scene.nodes.size(); i++) {
+    for (int i = 0; i < scene.nodes.size(); i++)
+    {
         auto &node = scene.nodes[i];
-        if (node.meshes.size() > 0) {
+        if (node.meshes.size() > 0)
+        {
             filteredNode.push_back(i);
         }
     }
-    for(int i = 0; i < filteredNode.size(); ++i) {
+    for (int i = 0; i < filteredNode.size(); ++i)
+    {
         auto &node = scene.nodes[filteredNode[i]];
-        for(int j = 0; j < node.meshes.size(); ++j) {
+        for (int j = 0; j < node.meshes.size(); ++j)
+        {
             auto meshIndex = node.meshes[j];
             auto nodeIndex = filteredNode[i];
             auto &mesh = scene.meshes[meshIndex];
             auto &material = scene.materials[mesh.material];
-            if (material.alphaMode == Material::OPAQUE) {
+            if (material.alphaMode == Material::OPAQUE)
+            {
                 opaqueMeshes.push_back({meshIndex, nodeIndex});
             }
-            else {
+            else
+            {
                 transparentMeshes.push_back({meshIndex, nodeIndex});
             }
         }
     }
-
 
     TextureDescriptor textureDescriptor({
         .target = GL_TEXTURE_2D,
@@ -349,16 +354,16 @@ void GLPBRRenderPass::renderNode(SceneGraph &scene, int32_t index)
 {
     auto &node = scene.nodes[index];
     auto &model = scene.worldMatrices[index];
-    
+
     if (node.meshes.size() > 0)
     {
-        for (U32 i = 0; i < node.meshes.size(); ++i) {
-
-           
+        for (U32 i = 0; i < node.meshes.size(); ++i)
+        {
 
             auto &mesh = scene.meshes[node.meshes[i]];
 
-            if(!frustum.IsBoxVisible(mesh.bbox.transform(model))) {
+            if (!frustum.IsBoxVisible(mesh.bbox.transform(model)))
+            {
                 printf("mesh not in frustum\n");
                 continue;
             }
@@ -429,7 +434,6 @@ void GLPBRRenderPass::renderNode(SceneGraph &scene, int32_t index)
             }
             GLDevice::drawVAO(vao);
         }
-        
     }
     // for (int i = 0; i < node.children.size(); ++i)
     // {
@@ -437,8 +441,9 @@ void GLPBRRenderPass::renderNode(SceneGraph &scene, int32_t index)
     // }
 }
 
-void GLPBRRenderPass::renderMesh(SceneGraph &scene, int32_t meshIndex, const glm::mat4 &model) {
-    auto &mesh = scene.meshes[meshIndex];        
+void GLPBRRenderPass::renderMesh(SceneGraph &scene, int32_t meshIndex, const glm::mat4 &model)
+{
+    auto &mesh = scene.meshes[meshIndex];
     auto &material = scene.materials[mesh.material];
     auto &vao = mesh.vao;
     GLDevice::setUniform(mProgram, "model", model);
@@ -447,9 +452,12 @@ void GLPBRRenderPass::renderMesh(SceneGraph &scene, int32_t meshIndex, const glm
     GLDevice::setUniform(mProgram, "proj", scene.camera.proj);
     GLDevice::setUniform(mProgram, "alphaMode", material.alphaMode);
     GLDevice::setUniform(mProgram, "alphaCutoff", material.alphaCutoff);
-    if (material.doubleSided) {
+    if (material.doubleSided)
+    {
         glDisable(GL_CULL_FACE);
-    } else {
+    }
+    else
+    {
         glEnable(GL_CULL_FACE);
     }
     // TODO: check camera dirty flag only set this when camera is dirty
@@ -531,35 +539,41 @@ void GLPBRRenderPass::render(SceneGraph &scene)
     // filter out nodes that are not in frustum
     std::vector<std::pair<U32, U32>> opaqueToRender;
     std::vector<std::pair<U32, U32>> transparentToRender;
-    for (int i = 0; i < opaqueMeshes.size(); ++i) {
+    for (int i = 0; i < opaqueMeshes.size(); ++i)
+    {
         auto pair = opaqueMeshes[i];
         auto meshIndex = pair.first;
         auto nodeIndex = pair.second;
-        if (frustum.IsBoxVisible(scene.bboxes[nodeIndex])) {
+        if (frustum.IsBoxVisible(scene.bboxes[nodeIndex]))
+        {
             opaqueToRender.push_back({meshIndex, nodeIndex});
         }
     }
 
-    for (int i = 0; i < transparentMeshes.size(); ++i) {
+    for (int i = 0; i < transparentMeshes.size(); ++i)
+    {
         auto pair = transparentMeshes[i];
         auto meshIndex = pair.first;
         auto nodeIndex = pair.second;
-        if (frustum.IsBoxVisible(scene.bboxes[nodeIndex])) {
+        if (frustum.IsBoxVisible(scene.bboxes[nodeIndex]))
+        {
             transparentToRender.push_back({meshIndex, nodeIndex});
         }
     }
 
     // flat the nodes to meshes and matrices
 
-    for (auto& pair: opaqueToRender) {
+    for (auto &pair : opaqueToRender)
+    {
         auto meshIndex = pair.first;
         auto nodeIndex = pair.second;
-        
+
         renderMesh(scene, meshIndex, scene.worldMatrices[nodeIndex]);
     }
     glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    for (auto& pair: transparentToRender) { 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    for (auto &pair : transparentToRender)
+    {
         auto meshIndex = pair.first;
         auto nodeIndex = pair.second;
         renderMesh(scene, meshIndex, scene.worldMatrices[nodeIndex]);

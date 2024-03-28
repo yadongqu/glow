@@ -69,7 +69,8 @@ glm::mat4 aiToGlm(const aiMatrix4x4 &from)
     return to;
 }
 
-void loadNode(const aiScene *scene, aiNode *node, SceneGraph &sceneGraph, U32 parentIndex = U32_MAX) {
+void loadNode(const aiScene *scene, aiNode *node, SceneGraph &sceneGraph, U32 parentIndex = U32_MAX)
+{
     int nodeIndex = sceneGraph.nodes.size();
     sceneGraph.nodes.push_back(Node());
     sceneGraph.localMatrices.push_back(aiToGlm(node->mTransformation));
@@ -77,32 +78,41 @@ void loadNode(const aiScene *scene, aiNode *node, SceneGraph &sceneGraph, U32 pa
     sceneGraph.bboxes.push_back(BBox());
     auto &newNode = sceneGraph.nodes[nodeIndex];
     newNode.parent = parentIndex;
-    if (parentIndex != U32_MAX) {
+    if (parentIndex != U32_MAX)
+    {
         sceneGraph.nodes[parentIndex].children.push_back(nodeIndex);
         // get parent world matrix
         auto parentWorldMatrix = sceneGraph.worldMatrices[parentIndex];
         // set this node's world matrix
         sceneGraph.worldMatrices[nodeIndex] = parentWorldMatrix * sceneGraph.localMatrices[nodeIndex];
-    } else {
+    }
+    else
+    {
         // this is the root node, its global matrix is the same as its local matrix
         sceneGraph.worldMatrices[nodeIndex] = sceneGraph.localMatrices[nodeIndex];
     }
-    if (node->mNumMeshes > 0) {
+    if (node->mNumMeshes > 0)
+    {
         newNode.meshes.resize(node->mNumMeshes);
-        for (int i = 0; i < node->mNumMeshes; i++) {
+        for (int i = 0; i < node->mNumMeshes; i++)
+        {
             newNode.meshes[i] = node->mMeshes[i];
         }
     }
-    for(U32 i = 0; i < node->mNumChildren; i++){
+    for (U32 i = 0; i < node->mNumChildren; i++)
+    {
         loadNode(scene, node->mChildren[i], sceneGraph, nodeIndex);
     }
 }
 
-void updateNodeBBox(SceneGraph &sceneGraph, U32 nodeIndex) {
+void updateNodeBBox(SceneGraph &sceneGraph, U32 nodeIndex)
+{
     auto &node = sceneGraph.nodes[nodeIndex];
     auto &bbox = sceneGraph.bboxes[nodeIndex];
-    if (node.meshes.size() > 0) {
-        for (auto meshIndex : node.meshes) {
+    if (node.meshes.size() > 0)
+    {
+        for (auto meshIndex : node.meshes)
+        {
             auto &mesh = sceneGraph.meshes[meshIndex];
             bbox = bbox.expand(mesh.bbox);
         }
@@ -110,13 +120,15 @@ void updateNodeBBox(SceneGraph &sceneGraph, U32 nodeIndex) {
         bbox = bbox.transform(sceneGraph.worldMatrices[nodeIndex]);
         return;
     }
-    for(U32 child : node.children){
+    for (U32 child : node.children)
+    {
         updateNodeBBox(sceneGraph, child);
         bbox = bbox.expand(sceneGraph.bboxes[child]);
     }
 }
 
-bool SceneGraph::load(const char *path){
+bool SceneGraph::load(const char *path)
+{
     std::string dir = path;
     dir = dir.substr(0, dir.find_last_of("/"));
     const unsigned int flags = 0 |
@@ -132,36 +144,39 @@ bool SceneGraph::load(const char *path){
                                aiProcess_GenUVCoords;
     const aiScene *scene = aiImportFile(path, flags);
 
-    if (!scene || !scene->HasMeshes()) {
+    if (!scene || !scene->HasMeshes())
+    {
         fprintf(stderr, "Failed to load scene\n");
         return false;
     }
 
     meshes.resize(scene->mNumMeshes);
     printf("Loadding %d meshes\n", scene->mNumMeshes);
-    for(U32 i = 0; i < meshes.size(); i++){
+    for (U32 i = 0; i < meshes.size(); i++)
+    {
         auto &mesh = scene->mMeshes[i];
         auto &primitive = meshes[i];
         primitive.vertices.resize(mesh->mNumVertices);
-        for(U32 j = 0; j < mesh->mNumVertices; j++){
+        for (U32 j = 0; j < mesh->mNumVertices; j++)
+        {
             auto &v = mesh->mVertices[j];
             auto &n = mesh->mNormals[j];
 
             primitive.vertices[j].position = {v.x, v.y, v.z};
             primitive.vertices[j].normal = {n.x, n.y, n.z};
 
-            if (mesh->HasTextureCoords(0)) {
+            if (mesh->HasTextureCoords(0))
+            {
                 auto &uv = mesh->mTextureCoords[0][j];
                 primitive.vertices[j].uv = {uv.x, uv.y};
             }
-
-
 
             primitive.bbox = primitive.bbox.expand(primitive.vertices[j].position);
         }
 
         primitive.indices.resize(mesh->mNumFaces * 3);
-        for(U32 j = 0; j < mesh->mNumFaces; j++){
+        for (U32 j = 0; j < mesh->mNumFaces; j++)
+        {
             auto &f = mesh->mFaces[j];
             primitive.indices[j * 3 + 0] = f.mIndices[0];
             primitive.indices[j * 3 + 1] = f.mIndices[1];
@@ -174,22 +189,24 @@ bool SceneGraph::load(const char *path){
     loadNode(scene, scene->mRootNode, *this);
 
     materials.resize(scene->mNumMaterials);
-    for(U32 i = 0; i < scene->mNumMaterials; i++){ 
+    for (U32 i = 0; i < scene->mNumMaterials; i++)
+    {
         auto &M = scene->mMaterials[i];
         auto &material = materials[i];
         aiColor4D color;
         if (aiGetMaterialColor(M, AI_MATKEY_COLOR_AMBIENT, &color) == AI_SUCCESS)
         {
-            if (color.a < 1.0f) {
+            if (color.a < 1.0f)
+            {
                 printf("Material %d has alpha\n", i);
             }
-            material.emissive= glm::vec3(color.r, color.g, color.b);
-
+            material.emissive = glm::vec3(color.r, color.g, color.b);
         }
 
         if (aiGetMaterialColor(M, AI_MATKEY_COLOR_DIFFUSE, &color) == AI_SUCCESS)
         {
-            if (color.a < 1.0f) {
+            if (color.a < 1.0f)
+            {
                 printf("Material %d has alpha\n", i);
             }
             material.albedo = glm::vec3(color.r, color.g, color.b);
@@ -202,31 +219,40 @@ bool SceneGraph::load(const char *path){
             material.emissive.z += color.b;
         }
         float alphacutoff = 1.0f;
-        if(aiGetMaterialFloat(M, AI_MATKEY_GLTF_ALPHACUTOFF, &alphacutoff) == AI_SUCCESS) {
+        if (aiGetMaterialFloat(M, AI_MATKEY_GLTF_ALPHACUTOFF, &alphacutoff) == AI_SUCCESS)
+        {
             material.alphaCutoff = glm::clamp(alphacutoff, 0.0f, 1.0f);
         }
         aiString alphaMode;
-        if(aiGetMaterialString(M, AI_MATKEY_GLTF_ALPHAMODE, &alphaMode) == AI_SUCCESS) {
+        if (aiGetMaterialString(M, AI_MATKEY_GLTF_ALPHAMODE, &alphaMode) == AI_SUCCESS)
+        {
             printf("Material %d has alpha mode %s\n", i, alphaMode.C_Str());
-            if (strcmp(alphaMode.C_Str(), "BLEND") == 0) {
+            if (strcmp(alphaMode.C_Str(), "BLEND") == 0)
+            {
                 material.alphaMode = Material::BLEND;
-            } else if (strcmp(alphaMode.C_Str(), "MASK") == 0) {
+            }
+            else if (strcmp(alphaMode.C_Str(), "MASK") == 0)
+            {
                 material.alphaMode = Material::MASK;
-            } else {
+            }
+            else
+            {
                 material.alphaMode = Material::OPAQUE;
             }
         }
 
         aiBool doubleSided;
-        if (aiGetMaterialInteger(M, AI_MATKEY_TWOSIDED, &doubleSided) == AI_SUCCESS) {
+        if (aiGetMaterialInteger(M, AI_MATKEY_TWOSIDED, &doubleSided) == AI_SUCCESS)
+        {
             material.doubleSided = doubleSided != 0;
-            if (material.doubleSided) { 
+            if (material.doubleSided)
+            {
                 printf("Material %d is double sided\n", i);
             }
         }
 
         // get blend mode
-        
+
         // float opacity = 1.0f;
 
         // if (aiGetMaterialFloat(M, AI_MATKEY_OPACITY, &opacity) == AI_SUCCESS) {
@@ -244,7 +270,7 @@ bool SceneGraph::load(const char *path){
         if (aiGetMaterialFloat(M, AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_ROUGHNESS_FACTOR, &tmp) == AI_SUCCESS)
             material.roughness = tmp;
 
-        // 
+        //
 
         aiString path;
         aiTextureMapping mapping;
@@ -282,7 +308,8 @@ bool SceneGraph::load(const char *path){
             material.hasAlbedoMap = true;
         }
 
-        if (aiGetMaterialTexture(M, aiTextureType_NORMALS, 0, &path, &mapping, &UVIndex, &blend, &textureOp, textureMapMode, &textureFlags) == AI_SUCCESS) {
+        if (aiGetMaterialTexture(M, aiTextureType_NORMALS, 0, &path, &mapping, &UVIndex, &blend, &textureOp, textureMapMode, &textureFlags) == AI_SUCCESS)
+        {
             printf("Normal texture: %s\n", path.C_Str());
             std::string pathString = path.C_Str();
             std::string fullPath = dir + "/" + pathString;
@@ -294,7 +321,8 @@ bool SceneGraph::load(const char *path){
             material.hasNormalMap = true;
         }
 
-        if (aiGetMaterialTexture(M, aiTextureType_METALNESS, 0, &path, &mapping, &UVIndex, &blend, &textureOp, textureMapMode, &textureFlags) == AI_SUCCESS) {
+        if (aiGetMaterialTexture(M, aiTextureType_METALNESS, 0, &path, &mapping, &UVIndex, &blend, &textureOp, textureMapMode, &textureFlags) == AI_SUCCESS)
+        {
             printf("Metalness texture: %s\n", path.C_Str());
             std::string pathString = path.C_Str();
             std::string fullPath = dir + "/" + pathString;
@@ -306,7 +334,8 @@ bool SceneGraph::load(const char *path){
             material.hasMetallicRoughnessMap = true;
         }
 
-        if (aiGetMaterialTexture(M, aiTextureType_LIGHTMAP, 0, &path, &mapping, &UVIndex, &blend, &textureOp, textureMapMode, &textureFlags) == AI_SUCCESS) {
+        if (aiGetMaterialTexture(M, aiTextureType_LIGHTMAP, 0, &path, &mapping, &UVIndex, &blend, &textureOp, textureMapMode, &textureFlags) == AI_SUCCESS)
+        {
             printf("Occlusion texture: %s\n", path.C_Str());
             std::string pathString = path.C_Str();
             std::string fullPath = dir + "/" + pathString;
@@ -317,13 +346,20 @@ bool SceneGraph::load(const char *path){
             material.aoMap = textureIndex;
             material.hasAOMap = true;
         }
-
     }
 
     updateNodeBBox(*this, 0);
 
-    const char *environmentPath = "resources/hdr/piazza_bologni_1k.hdr";
+    // const char *environmentPath = "resources/hdr/je_gray_02_4k.hdr";
+    const char *environmentPath = "resources/hdr/symmetrical_garden_02_4k.hdr";
     loadHDRTexture(environmentPath, environment);
+
+    auto sceneCenter = bboxes[0].center;
+    auto sceneExtent = bboxes[0].extent;
+
+    camera.eye = sceneCenter + glm::vec3(0.0f, 0.0f, sceneExtent.z * 3);
+    camera.target = sceneCenter;
+    camera.view = glm::lookAt(camera.eye, camera.target, glm::vec3(0.0, 1.0, 0.0));
 
     return true;
 }
