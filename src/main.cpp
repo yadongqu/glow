@@ -17,7 +17,8 @@ int main()
     // scene.load("../extern/glTF-Sample-Models/2.0/DragonAttenuation/glTF/DragonAttenuation.gltf");
 
     // scene.load("../extern/glTF-Sample-Models/2.0/ABeautifulGame/glTF/ABeautifulGame.gltf");
-    scene.load("../extern/glTF-Sample-Models/2.0/DamagedHelmet/glTF/DamagedHelmet.gltf");
+    // scene.load("../extern/glTF-Sample-Models/2.0/DamagedHelmet/glTF/DamagedHelmet.gltf");
+    scene.load("../extern/glTF-Sample-Models/2.0/LightsPunctualLamp/glTF/LightsPunctualLamp.gltf");
     // scene.load("resources/gltf/buggy/Buggy.gltf");
     // scene.load("resources/gltf/waterbottle/WaterBottle.gltf");
     // scene.load("resources/gltf/engine/2CylinderEngine.gltf");

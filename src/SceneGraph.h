@@ -5,6 +5,13 @@
 #include <glad/glad.h>
 #include "GLResource.h"
 
+struct PointLight
+{
+    glm::vec3 position;
+    glm::vec3 color;
+    F32 intensity;
+    F32 range;
+};
 
 struct CameraData
 {
@@ -81,7 +88,8 @@ struct BBox
         return 2.0f * extent;
     }
 
-    BBox transform(const glm::mat4& mat) const {
+    BBox transform(const glm::mat4 &mat) const
+    {
         auto newCenter = glm::vec3(mat * glm::vec4(center, 1.0f));
         BBox result;
         result.center = newCenter;
@@ -132,11 +140,10 @@ struct Node
     U32 parent{U32_MAX};
 };
 
-
-
 struct Material
 {
-    enum AlphaMode {
+    enum AlphaMode
+    {
         OPAQUE,
         BLEND,
         MASK
@@ -163,7 +170,6 @@ struct Material
     AlphaMode alphaMode = OPAQUE;
     F32 alphaCutoff = 0.5f;
     bool doubleSided = false;
-
 };
 
 struct SceneGraph
@@ -178,6 +184,7 @@ struct SceneGraph
     std::vector<Material> materials;
     std::vector<Node> nodes;
     std::vector<BBox> bboxes;
+    std::vector<PointLight> pointLights;
     bool initialized = false;
 
     CameraData camera;

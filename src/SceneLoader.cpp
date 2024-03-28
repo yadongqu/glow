@@ -150,6 +150,26 @@ bool SceneGraph::load(const char *path)
         return false;
     }
 
+    if (scene->HasLights())
+    {
+        // read lights
+        auto lights = scene->mLights;
+        for (U32 i = 0; i < scene->mNumLights; i++)
+        {
+            auto light = lights[i];
+
+            if (light->mType == aiLightSource_POINT)
+            {
+                PointLight pointLight;
+                pointLight.position = {light->mPosition.x, light->mPosition.y, light->mPosition.z};
+                pointLight.color = {light->mColorDiffuse.r, light->mColorDiffuse.g, light->mColorDiffuse.b};
+                pointLight.intensity = 10.0f;
+                pointLight.range = 5.0f;
+                pointLights.push_back(pointLight);
+            }
+        }
+    }
+
     meshes.resize(scene->mNumMeshes);
     printf("Loadding %d meshes\n", scene->mNumMeshes);
     for (U32 i = 0; i < meshes.size(); i++)
@@ -356,8 +376,8 @@ bool SceneGraph::load(const char *path)
 
     auto sceneCenter = bboxes[0].center;
     auto sceneExtent = bboxes[0].extent;
-
-    camera.eye = sceneCenter + glm::vec3(0.0f, 0.0f, sceneExtent.z * 3);
+    auto maxExtent = glm::max(sceneExtent.x, sceneExtent.y, sceneExtent.z);
+    camera.eye = sceneCenter + glm::vec3(0.0f, 0.0f, maxExtent * 3);
     camera.target = sceneCenter;
     camera.view = glm::lookAt(camera.eye, camera.target, glm::vec3(0.0, 1.0, 0.0));
 

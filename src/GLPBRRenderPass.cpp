@@ -35,6 +35,13 @@ in vec3 WorldPos;
 in vec3 Normal;
 in vec2 TexCoord;
 
+// TODO: currently only support one point light
+uniform bool hasLight;
+uniform vec3 lightPosition;
+uniform vec3 lightColor;
+uniform float lightIntensity;
+
+
 uniform bool hasAlbedoMap;
 uniform bool hasNormalMap;
 uniform bool hasMetallicRoughnessMap;
@@ -170,14 +177,46 @@ void main() {
     vec3 R = reflect(-V, N);
     vec3 color = vec3(0.0);
     if (renderMode == 0) {
+
+       
+
+
+
         vec3 F0 = vec3(0.04);
         F0 = mix(F0, albedo, metallic);
+
+        vec3 Lo = vec3(0.0);
+        if (hasLight) 
+        {
+            vec3 L = normalize(lightPosition - WorldPos);
+            vec3 H = normalize(L + V);
+            float distance = length(lightPosition - WorldPos);
+            float attenuation = 1.0 / (distance * distance + 1.0);
+            vec3 radiance = lightColor * attenuation * lightIntensity;
+            float NDF = DistributionGGX(N, H, roughness);
+            float G = GeometrySmith(N, V, L, roughness);
+            vec3 F = fresnelSchlick(max(dot(V, H), 0.0), F0);
+
+            vec3 numerator =  NDF * G * F;
+            float denumerator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
+
+            vec3 specular = numerator / denumerator;
+
+            vec3 kS = F;
+
+            vec3 kD = vec3(1.0) - kS;
+
+            kD *= (1.0 - metallic);
+            float NdotL = max(dot(N, L), 0.0); 
+            Lo += (kD * albedo / PI + specular) * radiance * NdotL;      
+        }
+        
 
         vec3 F = fresnelSchlickRoughness(max(dot(V, N), 0.0), F0, roughness);
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
-        // kD *= (1.0 - ao);
+        kD *= (1.0 - metallic);
 
         vec3 irradiance = texture(irradianceMap, N).rgb;
         vec3 diffuse = irradiance * albedo;
@@ -190,7 +229,7 @@ void main() {
         vec3 ambient = (kD * diffuse + specular + emissive) * ao;
 
 
-        color = ambient;
+        color = ambient +  Lo;
         color = color / (color + vec3(1.0));
         color = pow(color, vec3(1.0 / 2.2));
     } else if (renderMode == 1) {
@@ -452,6 +491,16 @@ void GLPBRRenderPass::renderMesh(SceneGraph &scene, int32_t meshIndex, const glm
     GLDevice::setUniform(mProgram, "proj", scene.camera.proj);
     GLDevice::setUniform(mProgram, "alphaMode", material.alphaMode);
     GLDevice::setUniform(mProgram, "alphaCutoff", material.alphaCutoff);
+    if (scene.pointLights.size() > 0)
+    {
+        // TODO: HANDLE MULTIPLE LIGHTS
+        GLDevice::setUniform(mProgram, "hasLight", true);
+        GLDevice::setUniform(mProgram, "lightColor", scene.pointLights[0].color);
+        GLDevice::setUniform(mProgram, "lightPosition", scene.pointLights[0].position);
+        GLDevice::setUniform(mProgram, "lightIntensity", scene.pointLights[0].intensity);
+        // GLDevice::setUniform(mProgram, "lightRange", scene.pointLights[0].range);
+    }
+
     if (material.doubleSided)
     {
         glDisable(GL_CULL_FACE);
